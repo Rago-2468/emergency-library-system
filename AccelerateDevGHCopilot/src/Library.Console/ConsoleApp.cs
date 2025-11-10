@@ -124,7 +124,7 @@ public class ConsoleApp
 
     async Task<ConsoleState> PatronSearchResults()
     {
-        CommonActions options = CommonActions.Select | CommonActions.SearchPatrons | CommonActions.Quit;
+        CommonActions options = CommonActions.Select | CommonActions.SearchPatrons | CommonActions.Quit | CommonActions.SearchBooks;
         CommonActions action = ReadInputOptions(options, out int selectedPatronNumber);
         if (action == CommonActions.Select)
         {
@@ -147,6 +147,10 @@ public class ConsoleApp
         else if (action == CommonActions.SearchPatrons)
         {
             return ConsoleState.PatronSearch;
+        }
+        else if (action == CommonActions.SearchBooks)
+        {
+            return await SearchBooks();
         }
 
         throw new InvalidOperationException("An input option is not handled.");
@@ -233,8 +237,8 @@ public class ConsoleApp
             loanNumber++;
         }
 
-        CommonActions options = CommonActions.SearchPatrons | CommonActions.Quit | CommonActions.Select | CommonActions.RenewPatronMembership;
-        CommonActions action = ReadInputOptions(options, out int selectedLoanNumber);
+    CommonActions options = CommonActions.SearchPatrons | CommonActions.Quit | CommonActions.Select | CommonActions.RenewPatronMembership | CommonActions.SearchBooks;
+    CommonActions action = ReadInputOptions(options, out int selectedLoanNumber);
         if (action == CommonActions.Select)
         {
             if (selectedLoanNumber >= 1 && selectedLoanNumber <= selectedPatronDetails.Loans.Count())
@@ -265,6 +269,10 @@ public class ConsoleApp
             selectedPatronDetails = (await _patronRepository.GetPatron(selectedPatronDetails.Id))!;
             return ConsoleState.PatronDetails;
         }
+        else if (action == CommonActions.SearchBooks)
+        {
+            return await SearchBooks();
+        }
 
         throw new InvalidOperationException("An input option is not handled.");
     }
@@ -283,6 +291,13 @@ public class ConsoleApp
         // Here you would typically search for books
         // For now, we'll go directly to book availability
         return ConsoleState.BookAvailability;
+    }
+
+    async Task<ConsoleState> SearchBooks()
+    {
+        // Centralized entry point for initiating a book search from multiple screens.
+        // For now, navigate to the BookSearchResults screen which performs the search prompt.
+        return ConsoleState.BookSearchResults;
     }
 
     async Task<ConsoleState> BookAvailability()
@@ -328,8 +343,8 @@ public class ConsoleApp
         Console.WriteLine($"Returned: {(selectedLoanDetails.ReturnDate != null).ToString()}");
         Console.WriteLine();
 
-        CommonActions options = CommonActions.SearchPatrons | CommonActions.Quit | CommonActions.ReturnLoanedBook | CommonActions.ExtendLoanedBook;
-        CommonActions action = ReadInputOptions(options, out int selectedLoanNumber);
+    CommonActions options = CommonActions.SearchPatrons | CommonActions.Quit | CommonActions.ReturnLoanedBook | CommonActions.ExtendLoanedBook | CommonActions.SearchBooks;
+    CommonActions action = ReadInputOptions(options, out int selectedLoanNumber);
 
         if (action == CommonActions.ExtendLoanedBook)
         {
@@ -358,6 +373,10 @@ public class ConsoleApp
         else if (action == CommonActions.SearchPatrons)
         {
             return ConsoleState.PatronSearch;
+        }
+        else if (action == CommonActions.SearchBooks)
+        {
+            return await SearchBooks();
         }
 
         throw new InvalidOperationException("An input option is not handled.");
