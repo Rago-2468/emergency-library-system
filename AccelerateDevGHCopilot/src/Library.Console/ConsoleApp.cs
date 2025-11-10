@@ -53,6 +53,9 @@ public class ConsoleApp
                 case ConsoleState.BookAvailability:
                     _currentState = await BookAvailability();
                     break;
+                case ConsoleState.BookSearchResults:
+                    _currentState = await BookSearchResults();
+                    break;
             }
         }
     }
@@ -63,7 +66,8 @@ public class ConsoleApp
         Console.WriteLine("------------------------");
         Console.WriteLine("1. Search for patrons");
         Console.WriteLine("2. Check book availability");
-        Console.WriteLine("\nSelect an option (1-2) or 'q' to quit:");
+        Console.WriteLine("3. Search for books");
+        Console.WriteLine("\nSelect an option (1-3) or 'q' to quit:");
 
         string? choice = Console.ReadLine();
         if (choice == "q")
@@ -71,6 +75,9 @@ public class ConsoleApp
         
         if (choice == "2")
             return ConsoleState.BookAvailability;
+            
+        if (choice == "3")
+            return ConsoleState.BookSearchResults;
 
         string searchInput = ReadPatronName();
 
@@ -163,6 +170,7 @@ public class ConsoleApp
                 "e" when options.HasFlag(CommonActions.ExtendLoanedBook) => CommonActions.ExtendLoanedBook,
                 "r" when options.HasFlag(CommonActions.ReturnLoanedBook) => CommonActions.ReturnLoanedBook,
                 "b" when options.HasFlag(CommonActions.CheckBookAvailability) => CommonActions.CheckBookAvailability,
+                "f" when options.HasFlag(CommonActions.SearchBooks) => CommonActions.SearchBooks,
                 _ when int.TryParse(userInput, out optionNumber) => CommonActions.Select,
                 _ => CommonActions.Repeat
             };
@@ -201,6 +209,10 @@ public class ConsoleApp
         if (options.HasFlag(CommonActions.CheckBookAvailability))
         {
             Console.WriteLine(" - \"b\" to check book availability");
+        }
+        if (options.HasFlag(CommonActions.SearchBooks))
+        {
+            Console.WriteLine(" - \"f\" to find books");
         }
         if (options.HasFlag(CommonActions.Select))
         {
@@ -255,6 +267,22 @@ public class ConsoleApp
         }
 
         throw new InvalidOperationException("An input option is not handled.");
+    }
+
+    async Task<ConsoleState> BookSearchResults()
+    {
+        Console.Write("Enter book title or author name to search: ");
+        string searchInput = Console.ReadLine() ?? "";
+
+        if (string.IsNullOrWhiteSpace(searchInput))
+        {
+            Console.WriteLine("Search input cannot be empty.");
+            return ConsoleState.BookSearchResults;
+        }
+
+        // Here you would typically search for books
+        // For now, we'll go directly to book availability
+        return ConsoleState.BookAvailability;
     }
 
     async Task<ConsoleState> BookAvailability()

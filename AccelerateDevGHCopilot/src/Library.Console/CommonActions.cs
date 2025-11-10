@@ -10,5 +10,6 @@ public enum CommonActions
     RenewPatronMembership = 8,
     ReturnLoanedBook = 16,
     ExtendLoanedBook = 32,
-    CheckBookAvailability = 64
+    CheckBookAvailability = 64,
+    SearchBooks = 128
 }
