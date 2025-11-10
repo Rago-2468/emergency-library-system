@@ -307,13 +307,14 @@ public class ConsoleApp
         }
 
         Console.WriteLine();
-        CommonActions options = CommonActions.SearchPatrons | CommonActions.CheckBookAvailability | CommonActions.Quit;
+        CommonActions options = CommonActions.SearchPatrons | CommonActions.CheckBookAvailability | CommonActions.SearchBooks | CommonActions.Quit;
         CommonActions action = ReadInputOptions(options, out int _);
 
         return action switch
         {
             CommonActions.SearchPatrons => ConsoleState.PatronSearch,
             CommonActions.CheckBookAvailability => ConsoleState.BookAvailability,
+            CommonActions.SearchBooks => ConsoleState.BookSearchResults,
             CommonActions.Quit => ConsoleState.Quit,
             _ => throw new InvalidOperationException("An input option is not handled.")
         };
