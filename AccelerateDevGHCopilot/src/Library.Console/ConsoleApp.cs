@@ -294,9 +294,95 @@ public class ConsoleApp
             return ConsoleState.BookSearchResults;
         }
 
-        // Here you would typically search for books
-        // For now, we'll go directly to book availability
-        return ConsoleState.BookAvailability;
+        await _jsonData.EnsureDataLoaded();
+
+        var matches = _jsonData.Books!
+            .Where(b => (!string.IsNullOrWhiteSpace(b.Title) && b.Title.Contains(searchInput, StringComparison.OrdinalIgnoreCase))
+                     || (!string.IsNullOrWhiteSpace(b.ISBN) && b.ISBN.Contains(searchInput, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+
+        if (!matches.Any())
+        {
+            Console.WriteLine($"No books found matching '{searchInput}'.");
+            return ConsoleState.BookSearchResults;
+        }
+
+        Console.WriteLine("Matching Books:");
+        int index = 1;
+        foreach (var b in matches)
+        {
+            Console.WriteLine($"{index}) {b.Title} (ISBN: {b.ISBN})");
+            index++;
+        }
+
+        // Let the user select a book by number, or perform another search or quit
+        CommonActions options = CommonActions.Select | CommonActions.SearchBooks | CommonActions.Quit;
+        CommonActions action = ReadInputOptions(options, out int selectedNumber);
+
+        if (action == CommonActions.Select)
+        {
+            if (selectedNumber >= 1 && selectedNumber <= matches.Count)
+            {
+                var selectedBook = matches.ElementAt(selectedNumber - 1);
+
+                // check availability across copies
+                var copies = _jsonData.BookItems!.Where(bi => bi.BookId == selectedBook.Id).ToList();
+                if (!copies.Any())
+                {
+                    Console.WriteLine($"No copies found for '{selectedBook.Title}'.");
+                    return ConsoleState.BookSearchResults;
+                }
+
+                bool anyAvailable = false;
+                DateTime? earliestDue = null;
+                string? currentHolder = null;
+
+                foreach (var copy in copies)
+                {
+                    var (isAvailable, dueDate, patronName) = await _bookAvailabilityService.GetBookAvailabilityDetails(copy.Id);
+                    if (isAvailable)
+                    {
+                        Console.WriteLine($"Book '{selectedBook.Title}' is available for loan (copy id {copy.Id}).");
+                        anyAvailable = true;
+                        break;
+                    }
+                    if (dueDate != null && (earliestDue == null || dueDate < earliestDue))
+                    {
+                        earliestDue = dueDate;
+                        currentHolder = patronName;
+                    }
+                }
+
+                if (!anyAvailable)
+                {
+                    if (earliestDue != null)
+                    {
+                        Console.WriteLine($"All copies of '{selectedBook.Title}' are on loan. Next expected return: {earliestDue:yyyy-MM-dd} (held by {currentHolder}).");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"All copies of '{selectedBook.Title}' are on loan and no due dates are available.");
+                    }
+                }
+
+                return ConsoleState.BookSearchResults;
+            }
+            else
+            {
+                Console.WriteLine("Invalid selection number. Please try again.");
+                return ConsoleState.BookSearchResults;
+            }
+        }
+        else if (action == CommonActions.SearchBooks)
+        {
+            return ConsoleState.BookSearchResults;
+        }
+        else if (action == CommonActions.Quit)
+        {
+            return ConsoleState.Quit;
+        }
+
+        throw new InvalidOperationException("An input option is not handled.");
     }
 
     async Task<ConsoleState> SearchBooks()
