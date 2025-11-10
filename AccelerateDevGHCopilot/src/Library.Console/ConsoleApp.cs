@@ -387,69 +387,16 @@ public class ConsoleApp
 
     async Task<ConsoleState> SearchBooks()
     {
-        Console.Write("Enter book title to search: ");
-        string title = Console.ReadLine() ?? string.Empty;
+        Console.Write("Enter a book title to search for: ");
+        string? title = Console.ReadLine();
+
         if (string.IsNullOrWhiteSpace(title))
         {
             Console.WriteLine("No search title provided.");
             return ConsoleState.BookSearchResults;
         }
 
-        await _jsonData.EnsureDataLoaded();
-
-        var matches = _jsonData.Books!
-            .Where(b => !string.IsNullOrWhiteSpace(b.Title) && b.Title.Contains(title, StringComparison.OrdinalIgnoreCase))
-            .ToList();
-
-        if (!matches.Any())
-        {
-            Console.WriteLine($"No books found matching '{title}'.");
-            return ConsoleState.BookSearchResults;
-        }
-
-        // For now, evaluate availability for the first matched book and report overall availability
-        var book = matches.First();
-        var copies = _jsonData.BookItems!.Where(bi => bi.BookId == book.Id).ToList();
-
-        if (!copies.Any())
-        {
-            Console.WriteLine($"No copies found for '{book.Title}'.");
-            return ConsoleState.BookSearchResults;
-        }
-
-        bool anyAvailable = false;
-        DateTime? earliestDue = null;
-        string? currentHolder = null;
-
-        foreach (var copy in copies)
-        {
-            var (isAvailable, dueDate, patronName) = await _bookAvailabilityService.GetBookAvailabilityDetails(copy.Id);
-            if (isAvailable)
-            {
-                Console.WriteLine($"Book '{book.Title}' is available for loan (copy id {copy.Id}).");
-                anyAvailable = true;
-                break;
-            }
-
-            if (dueDate != null && (earliestDue == null || dueDate < earliestDue))
-            {
-                earliestDue = dueDate;
-                currentHolder = patronName;
-            }
-        }
-
-        if (!anyAvailable)
-        {
-            if (earliestDue != null)
-            {
-                Console.WriteLine($"All copies of '{book.Title}' are on loan. Next expected return: {earliestDue:yyyy-MM-dd} (held by {currentHolder}).");
-            }
-            else
-            {
-                Console.WriteLine($"All copies of '{book.Title}' are on loan and no due dates are available.");
-            }
-        }
-
+        // proceed to the book search results screen which will use the provided title
         return ConsoleState.BookSearchResults;
     }
 
