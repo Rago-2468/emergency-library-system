@@ -27,6 +27,17 @@ public class JsonLoanRepository : ILoanRepository
         return null;
     }
 
+    public async Task<IEnumerable<Loan>> GetActiveLoansForBook(int bookItemId)
+    {
+        await _jsonData.EnsureDataLoaded();
+
+        var activeLoans = _jsonData.Loans!
+            .Where(l => l.BookItemId == bookItemId && l.ReturnDate == null)
+            .Select(loan => _jsonData.GetPopulatedLoan(loan));
+
+        return activeLoans;
+    }
+
     public async Task UpdateLoan(Loan loan)
     {
         Loan? existingLoan = null;

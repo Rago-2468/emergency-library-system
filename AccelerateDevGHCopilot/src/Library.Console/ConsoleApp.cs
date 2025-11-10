@@ -16,13 +16,20 @@ public class ConsoleApp
     ILoanRepository _loanRepository;
     ILoanService _loanService;
     IPatronService _patronService;
+    IBookAvailabilityService _bookAvailabilityService;
 
-    public ConsoleApp(ILoanService loanService, IPatronService patronService, IPatronRepository patronRepository, ILoanRepository loanRepository)
+    public ConsoleApp(
+        ILoanService loanService, 
+        IPatronService patronService, 
+        IPatronRepository patronRepository, 
+        ILoanRepository loanRepository,
+        IBookAvailabilityService bookAvailabilityService)
     {
         _patronRepository = patronRepository;
         _loanRepository = loanRepository;
         _loanService = loanService;
         _patronService = patronService;
+        _bookAvailabilityService = bookAvailabilityService;
     }
 
     public async Task Run()
@@ -43,12 +50,28 @@ public class ConsoleApp
                 case ConsoleState.LoanDetails:
                     _currentState = await LoanDetails();
                     break;
+                case ConsoleState.BookAvailability:
+                    _currentState = await BookAvailability();
+                    break;
             }
         }
     }
 
     async Task<ConsoleState> PatronSearch()
     {
+        Console.WriteLine("\nLibrary Management System");
+        Console.WriteLine("------------------------");
+        Console.WriteLine("1. Search for patrons");
+        Console.WriteLine("2. Check book availability");
+        Console.WriteLine("\nSelect an option (1-2) or 'q' to quit:");
+
+        string? choice = Console.ReadLine();
+        if (choice == "q")
+            return ConsoleState.Quit;
+        
+        if (choice == "2")
+            return ConsoleState.BookAvailability;
+
         string searchInput = ReadPatronName();
 
         matchingPatrons = await _patronRepository.SearchPatrons(searchInput);
@@ -139,6 +162,7 @@ public class ConsoleApp
                 "m" when options.HasFlag(CommonActions.RenewPatronMembership) => CommonActions.RenewPatronMembership,
                 "e" when options.HasFlag(CommonActions.ExtendLoanedBook) => CommonActions.ExtendLoanedBook,
                 "r" when options.HasFlag(CommonActions.ReturnLoanedBook) => CommonActions.ReturnLoanedBook,
+                "b" when options.HasFlag(CommonActions.CheckBookAvailability) => CommonActions.CheckBookAvailability,
                 _ when int.TryParse(userInput, out optionNumber) => CommonActions.Select,
                 _ => CommonActions.Repeat
             };
@@ -173,6 +197,10 @@ public class ConsoleApp
         if (options.HasFlag(CommonActions.Quit))
         {
             Console.WriteLine(" - \"q\" to quit");
+        }
+        if (options.HasFlag(CommonActions.CheckBookAvailability))
+        {
+            Console.WriteLine(" - \"b\" to check book availability");
         }
         if (options.HasFlag(CommonActions.Select))
         {
@@ -227,6 +255,40 @@ public class ConsoleApp
         }
 
         throw new InvalidOperationException("An input option is not handled.");
+    }
+
+    async Task<ConsoleState> BookAvailability()
+    {
+        Console.Write("Enter book item ID to check availability: ");
+        if (!int.TryParse(Console.ReadLine(), out int bookItemId))
+        {
+            Console.WriteLine("Invalid book item ID. Please enter a number.");
+            return ConsoleState.BookAvailability;
+        }
+
+        var (isAvailable, dueDate, currentPatronName) = await _bookAvailabilityService.GetBookAvailabilityDetails(bookItemId);
+
+        if (isAvailable)
+        {
+            Console.WriteLine($"Book item {bookItemId} is available for loan.");
+        }
+        else
+        {
+            Console.WriteLine($"Book item {bookItemId} is currently on loan to {currentPatronName}");
+            Console.WriteLine($"Expected return date: {dueDate:d}");
+        }
+
+        Console.WriteLine();
+        CommonActions options = CommonActions.SearchPatrons | CommonActions.CheckBookAvailability | CommonActions.Quit;
+        CommonActions action = ReadInputOptions(options, out int _);
+
+        return action switch
+        {
+            CommonActions.SearchPatrons => ConsoleState.PatronSearch,
+            CommonActions.CheckBookAvailability => ConsoleState.BookAvailability,
+            CommonActions.Quit => ConsoleState.Quit,
+            _ => throw new InvalidOperationException("An input option is not handled.")
+        };
     }
 
     async Task<ConsoleState> LoanDetails()

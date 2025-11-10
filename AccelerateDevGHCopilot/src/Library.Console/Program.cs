@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Library.Infrastructure.Data;
 using Library.ApplicationCore;
+using Library.ApplicationCore.Services;
 using Microsoft.Extensions.Configuration;
 
 var services = new ServiceCollection();
@@ -16,6 +17,7 @@ services.AddScoped<IPatronRepository, JsonPatronRepository>();
 services.AddScoped<ILoanRepository, JsonLoanRepository>();
 services.AddScoped<ILoanService, LoanService>();
 services.AddScoped<IPatronService, PatronService>();
+services.AddScoped<IBookAvailabilityService, BookAvailabilityService>();
 
 services.AddSingleton<JsonData>();
 services.AddSingleton<ConsoleApp>();
