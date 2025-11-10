@@ -169,8 +169,8 @@ public class ConsoleApp
                 "m" when options.HasFlag(CommonActions.RenewPatronMembership) => CommonActions.RenewPatronMembership,
                 "e" when options.HasFlag(CommonActions.ExtendLoanedBook) => CommonActions.ExtendLoanedBook,
                 "r" when options.HasFlag(CommonActions.ReturnLoanedBook) => CommonActions.ReturnLoanedBook,
-                "b" when options.HasFlag(CommonActions.CheckBookAvailability) => CommonActions.CheckBookAvailability,
-                "f" when options.HasFlag(CommonActions.SearchBooks) => CommonActions.SearchBooks,
+                "a" when options.HasFlag(CommonActions.CheckBookAvailability) => CommonActions.CheckBookAvailability,
+                "b" when options.HasFlag(CommonActions.SearchBooks) => CommonActions.SearchBooks,
                 _ when int.TryParse(userInput, out optionNumber) => CommonActions.Select,
                 _ => CommonActions.Repeat
             };
@@ -208,11 +208,11 @@ public class ConsoleApp
         }
         if (options.HasFlag(CommonActions.CheckBookAvailability))
         {
-            Console.WriteLine(" - \"b\" to check book availability");
+            Console.WriteLine(" - \"a\" to check book availability");
         }
         if (options.HasFlag(CommonActions.SearchBooks))
         {
-            Console.WriteLine(" - \"f\" to find books");
+            Console.WriteLine(" - \"b\" to search for books");
         }
         if (options.HasFlag(CommonActions.Select))
         {
