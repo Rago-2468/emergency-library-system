@@ -1,7 +1,10 @@
 ﻿using Library.ApplicationCore;
+using System.Linq;
+using System;
 using Library.ApplicationCore.Entities;
 using Library.ApplicationCore.Enums;
 using Library.Console;
+using Library.Infrastructure.Data;
 
 public class ConsoleApp
 {
@@ -17,19 +20,22 @@ public class ConsoleApp
     ILoanService _loanService;
     IPatronService _patronService;
     IBookAvailabilityService _bookAvailabilityService;
+    JsonData _jsonData;
 
     public ConsoleApp(
         ILoanService loanService, 
         IPatronService patronService, 
         IPatronRepository patronRepository, 
         ILoanRepository loanRepository,
-        IBookAvailabilityService bookAvailabilityService)
+        IBookAvailabilityService bookAvailabilityService,
+        JsonData jsonData)
     {
         _patronRepository = patronRepository;
         _loanRepository = loanRepository;
         _loanService = loanService;
         _patronService = patronService;
         _bookAvailabilityService = bookAvailabilityService;
+        _jsonData = jsonData;
     }
 
     public async Task Run()
@@ -295,8 +301,69 @@ public class ConsoleApp
 
     async Task<ConsoleState> SearchBooks()
     {
-        // Centralized entry point for initiating a book search from multiple screens.
-        // For now, navigate to the BookSearchResults screen which performs the search prompt.
+        Console.Write("Enter book title to search: ");
+        string title = Console.ReadLine() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            Console.WriteLine("No search title provided.");
+            return ConsoleState.BookSearchResults;
+        }
+
+        await _jsonData.EnsureDataLoaded();
+
+        var matches = _jsonData.Books!
+            .Where(b => !string.IsNullOrWhiteSpace(b.Title) && b.Title.Contains(title, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (!matches.Any())
+        {
+            Console.WriteLine($"No books found matching '{title}'.");
+            return ConsoleState.BookSearchResults;
+        }
+
+        // For now, evaluate availability for the first matched book and report overall availability
+        var book = matches.First();
+        var copies = _jsonData.BookItems!.Where(bi => bi.BookId == book.Id).ToList();
+
+        if (!copies.Any())
+        {
+            Console.WriteLine($"No copies found for '{book.Title}'.");
+            return ConsoleState.BookSearchResults;
+        }
+
+        bool anyAvailable = false;
+        DateTime? earliestDue = null;
+        string? currentHolder = null;
+
+        foreach (var copy in copies)
+        {
+            var (isAvailable, dueDate, patronName) = await _bookAvailabilityService.GetBookAvailabilityDetails(copy.Id);
+            if (isAvailable)
+            {
+                Console.WriteLine($"Book '{book.Title}' is available for loan (copy id {copy.Id}).");
+                anyAvailable = true;
+                break;
+            }
+
+            if (dueDate != null && (earliestDue == null || dueDate < earliestDue))
+            {
+                earliestDue = dueDate;
+                currentHolder = patronName;
+            }
+        }
+
+        if (!anyAvailable)
+        {
+            if (earliestDue != null)
+            {
+                Console.WriteLine($"All copies of '{book.Title}' are on loan. Next expected return: {earliestDue:yyyy-MM-dd} (held by {currentHolder}).");
+            }
+            else
+            {
+                Console.WriteLine($"All copies of '{book.Title}' are on loan and no due dates are available.");
+            }
+        }
+
         return ConsoleState.BookSearchResults;
     }
 
